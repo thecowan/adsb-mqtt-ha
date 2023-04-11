@@ -26,14 +26,14 @@
     },
     "step": {
       "user": {
-        "title": "Thermal comfort settings",
+        "title": "ADSB Info settings",
         "data": {
           "name": "Name",
-          "temperature_sensor": "Temperature sensor",
-          "humidity_sensor": "Humidity sensor",
+          "adsb_sensor": "Sensor reporting ADSB JSON data",
+          "adsb_json_attribute": "JSON data attribute",
           "poll": "Enable Polling",
           "scan_interval": "Poll interval (seconds)",
-          "custom_icons": "Use custom icons pack",
+          "use_fas_icons": "Use FontAwesome icons",
           "enabled_sensors": "Enabled sensors"
         }
       }

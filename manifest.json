@@ -2,7 +2,7 @@
   "domain": "adsb_info",
   "name": "ADSB Info",
   "codeowners": ["@thecowan"],
-  "config_flow": false,
+  "config_flow": true,
   "documentation": "https://github.com/thecowan/adsb_info/blob/master/README.md",
   "iot_class": "calculated",
   "issue_tracker": "https://github.com/thecowan/adsb_info/issues",
