@@ -129,6 +129,7 @@ SENSOR_TYPES = {
         "name": SensorType.CLOSEST_AIRCRAFT.to_name(),
         "icon": SensorType.CLOSEST_AIRCRAFT.default_icon(),
         "state_class": None,
+        "translation_key": SensorType.CLOSEST_AIRCRAFT,
     },
     SensorType.CLOSEST_AIRCRAFT_GROUND_SPEED: {
         "key": SensorType.CLOSEST_AIRCRAFT_GROUND_SPEED,
@@ -191,44 +192,7 @@ SENSOR_TYPES = {
     },
 }
 
-# TODO: translate
-CRAFT_CATEGORIES = {
-    'A': {
-        'name': 'Aircraft',
-        '0': 'No category information',
-        '1': 'Light (<15,500 lbs.)',
-        '2': 'Small (15,500 to 75,000 lbs.)',
-        '3': 'Large (75,000 to 300,000 lbs.)',
-        '4': 'High-Vortex Large',
-        '5': 'Heavy (> 300,000 lbs.)',
-        '6': 'High Performance',
-        '7': 'Rotorcraft'
-    },
-    'B': {
-        'name': 'Unpowered',
-        '0': 'No category information',
-        '1': 'Glider / Sailplane',
-        '2': 'Lighter-than-Air',
-        '3': 'Parachutist / Skydiver',
-        '4': 'Ultralight / hang-glider / paraglider',
-        '5': 'Reserved category',
-        '6': 'Unmanned Aerial Vehicle',
-        '7': 'Space / Trans-atmospheric vehicle'},
-    'C': {
-        'name': 'Ground',
-        '0': 'No category information',
-        '1': 'Emergency surface vehicle',
-        '2': 'Service surface vehicle',
-        '3': 'Point obstacle',
-        '4': 'Cluster obstacle',
-        '5': 'Line obstacle',
-        '6': 'Reserved category',
-        '7': 'Reserved category',
-    },
-    'D': {'name': 'Other'},
-    'X': {'name': 'Unknown'},
-}
-
+# TODO - translate
 BEARINGS = ['N', 'NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW']
 BEARINGS_FINE = ['N','NbE','NNE','NEbN','NE','NEbE','ENE','EbN','E','EbS','ESE','SEbE','SE','SEbS','SSE','SbE','S','SbW','SSW','SWbS','SW','SWbW','WSW','WbS','W','WbN','WNW','NWbW','NW','NWbN','NNW','NbW']
 BEARINGS_CRUDE = ['N','NE', 'E', 'SE','S','SW','W','NW']
@@ -623,15 +587,7 @@ class DeviceAdsbInfo:
 
         image = closest.get('image')
 
-        category = (closest.get('category') + "XX")[:2]
-        # TODO: error handling?
-        general_code = category[0]
-        specific_code = category[1]
-        # TODO - default to unknown
-        general = CRAFT_CATEGORIES[general_code]['name']
-        # TODO - default to unknown
-        specific = CRAFT_CATEGORIES[general_code][specific_code]
-        category = general + ' - ' + specific
+        category = (str(closest.get('category') or "") + "XX")[:2]
 
         attrs = {
             'latitude': closest['lat'],
@@ -642,7 +598,7 @@ class DeviceAdsbInfo:
             'flight_number': closest['flight'],
             'type': closest['desc'],
             'type_code': closest['t'],
-            'category_code': closest['category'],
+            'category_code': category,
             'category': category,
         }
         return (reg, attrs, image)

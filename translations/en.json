@@ -46,6 +46,47 @@
           "approaching": "Approaching",
           "receding": "Receding"
         }
+      },
+      "closest_aircraft": {
+        "state_attributes": {
+	  "category_code": {
+            "name": "Category Code"
+	  },
+	  "category": {
+            "name": "Category",
+            "state": {
+              "A0": "Aircraft (no category information)",
+              "A1": "Aircraft - Light (<15,500 lbs.)",
+              "A2": "Aircraft - Small (15,500 to 75,000 lbs.)",
+              "A3": "Aircraft - Large (75,000 to 300,000 lbs.)",
+              "A4": "Aircraft - High-Vortex Large",
+              "A5": "Aircraft - Heavy (> 300,000 lbs.)",
+              "A6": "Aircraft - High Performance",
+              "A7": "Aircraft - Rotorcraft",
+              "AX": "Aircraft (unknown category)",
+              "B0": "Unpowered (no category information)",
+              "B1": "Unpowered - Glider / Sailplane",
+              "B2": "Unpowered - Lighter-than-Air",
+              "B3": "Unpowered - Parachutist/Skydiver",
+              "B4": "Unpowered - Ultralight / hang-glider / paraglider",
+              "B5": "Unpowered - Reserved category",
+              "B6": "Unpowered - Unmanned Aerial Vehicle",
+              "B7": "Unpowered - Space / Trans-atmospheric vehicle",
+              "BX": "Unpowered (unknown category)",
+              "C0": "Ground (no category information)",
+              "C1": "Ground - Emergency surface vehicle",
+              "C2": "Ground - Service surface vehicle",
+              "C3": "Ground - Point obstacle",
+              "C4": "Ground - Cluster obstacle",
+              "C5": "Ground - Line obstacle",
+              "C6": "Ground - Reserved category",
+              "C7": "Ground - Reserved category",
+              "CX": "Ground (unknown category)",
+              "DX": "Other",
+              "XX": "Unknown"
+	    }
+	  }
+	}
       }
     }
   }
