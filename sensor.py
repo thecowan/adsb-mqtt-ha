@@ -437,6 +437,7 @@ class SensorAdsbInfo(SensorEntity):
         self._attr_unique_id = id_generator(self._device.unique_id, sensor_type)
         self._attr_should_poll = False
         self._available = False
+        self._picture = None
 
     @property
     def device_info(self) -> dict[str, Any]:
@@ -447,6 +448,10 @@ class SensorAdsbInfo(SensorEntity):
     def available(self) -> bool:
         """Return whether we're available."""
         return self._available
+
+    @property
+    def entity_picture(self) -> str | None:
+        return self._picture
 
     @property
     def extra_state_attributes(self):
@@ -475,11 +480,14 @@ class SensorAdsbInfo(SensorEntity):
             return None
 
         self._available = True
-        if type(value) == tuple and len(value) == 2:
+        self._picture = None
+        if type(value) == tuple and len(value) >= 2:
             self._attr_extra_state_attributes = value[1]
             #if self._sensor_type == SensorType.DEW_POINT_PERCEPTION:
             #    self._attr_extra_state_attributes[ATTR_DEW_POINT] = value[1]
             self._attr_native_value = value[0]
+            if len(value) == 3:
+                self._picture = value[2]
         else:
             self._attr_native_value = value
 
@@ -499,17 +507,16 @@ class SensorAdsbInfo(SensorEntity):
                         friendly_property_name,
                         self.name,
                     )
-                    continue
-
-                try:
-                    setattr(self, property_name, getattr(super(), property_name))
-                except AttributeError:
-                    _LOGGER.error(
-                        "Could not render %s template %s: %s",
-                        friendly_property_name,
-                        self.name,
-                        ex,
-                    )
+                else:
+                    try:
+                        setattr(self, property_name, getattr(super(), property_name))
+                    except AttributeError:
+                        _LOGGER.error(
+                            "Could not render %s template %s: %s",
+                            friendly_property_name,
+                            self.name,
+                            ex,
+                        )
 
 
 @dataclass
@@ -599,12 +606,15 @@ class DeviceAdsbInfo:
 
     # TODO: error handling
     @compute_once_lock(SensorType.CLOSEST_AIRCRAFT)
-    async def closest_aircraft(self) -> (str, dict):
-        # TODO: go unavailable if not working
+    async def closest_aircraft(self) -> (str, dict, str):
+        # TODO: go unavailable if not working - and set URL to None
         # TODO - don't rely on this being sorted!
         closest = self._info[0]
+
         # TODO: don't hardcode r
         reg = closest['r'].strip()
+
+        image = closest.get('image')
 
         category = (closest.get('category') + "XX")[:2]
         # TODO: error handling?
@@ -628,7 +638,7 @@ class DeviceAdsbInfo:
             'category_code': closest['category'],
             'category': category,
         }
-        return (reg, attrs)
+        return (reg, attrs, image)
 
     # TODO: error handling
     # TODO deduplicate
@@ -692,11 +702,14 @@ class DeviceAdsbInfo:
         closest = self._info[0]
         # TODO - probs not working
         if closest is None:
-            return "none"
+            return None
+        track = closest.get('track')
+        if track is None or track == '':
+            return None
+
         lat = float(closest['lat'])
         long =  float(closest['lon'])
         bearing = gcc.bearing_at_p1((self.hass.config.longitude, self.hass.config.latitude), (long, lat))
-        track = closest.get('track')
 
         relative = int(bearing - track) % 360
         if relative > 90 and relative < 270:
