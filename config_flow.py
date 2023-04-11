@@ -76,7 +76,7 @@ def build_schema(
                     },
                 },
             }),
-            vol.Required(
+            vol.Optional(
                 CONF_ADSB_JSON_ATTRIBUTE,
                 default=get_value(
                     config_entry, CONF_ADSB_JSON_ATTRIBUTE, JSON_ATTRIBUTE_DEFAULT
