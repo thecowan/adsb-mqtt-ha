@@ -21,7 +21,6 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
-    CONF_ENTITY_PICTURE_TEMPLATE,
     CONF_FRIENDLY_NAME,
     CONF_ICON_TEMPLATE,
     CONF_NAME,
@@ -280,7 +279,6 @@ SENSOR_SCHEMA = vol.Schema(
         vol.Required(CONF_ADSB_SENSOR): cv.entity_id,
         vol.Optional(CONF_ADSB_JSON_ATTRIBUTE): cv.string,
         vol.Optional(CONF_ICON_TEMPLATE): cv.template,
-        vol.Optional(CONF_ENTITY_PICTURE_TEMPLATE): cv.template,
         vol.Optional(CONF_FRIENDLY_NAME): cv.string,
         vol.Required(CONF_UNIQUE_ID): cv.string,
         vol.Optional(CONF_NAME): cv.string,
@@ -339,7 +337,6 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
                     **SENSOR_TYPES[SensorType.from_string(sensor_type)]
                 ),
                 icon_template=device_config.get(CONF_ICON_TEMPLATE),
-                entity_picture_template=device_config.get(CONF_ENTITY_PICTURE_TEMPLATE),
                 sensor_type=SensorType.from_string(sensor_type),
                 fas_icons=device_config.get(CONF_USE_FAS_ICONS, False),
                 is_config_entry=False,
@@ -419,7 +416,6 @@ class SensorAdsbInfo(SensorEntity):
         sensor_type: SensorType,
         entity_description: SensorEntityDescription,
         icon_template: Template = None,
-        entity_picture_template: Template = None,
         fas_icons: bool = False,
         is_config_entry: bool = True,
     ) -> None:
@@ -436,7 +432,6 @@ class SensorAdsbInfo(SensorEntity):
             if self.entity_description.key in FAS_ENTITY_ICONS:
                 self.entity_description.icon = FAS_ENTITY_ICONS[self.entity_description.key]
         self._icon_template = icon_template
-        self._entity_picture_template = entity_picture_template
         self._attr_native_value = None
         self._attr_extra_state_attributes = {}
         self._attr_unique_id = id_generator(self._device.unique_id, sensor_type)
@@ -465,8 +460,6 @@ class SensorAdsbInfo(SensorEntity):
         self._device.sensors.append(self)
         if self._icon_template is not None:
             self._icon_template.hass = self.hass
-        if self._entity_picture_template is not None:
-            self._entity_picture_template.hass = self.hass
         if self._device.compute_states[self._sensor_type].needs_update:
             self.async_schedule_update_ha_state(True)
 
@@ -490,12 +483,8 @@ class SensorAdsbInfo(SensorEntity):
         else:
             self._attr_native_value = value
 
-        for property_name, template in (
-            ("_attr_icon", self._icon_template),
-            ("_attr_entity_picture", self._entity_picture_template),
-        ):
-            if template is None:
-                continue
+        if self._icon_template is not None:
+            property_name = "_attr_icon"
 
             try:
                 setattr(self, property_name, template.async_render())
