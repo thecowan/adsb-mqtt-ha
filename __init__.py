@@ -28,6 +28,7 @@ from .sensor import (
     CONF_POLL,
     CONF_SCAN_INTERVAL,
     CONF_ADSB_SENSOR,
+    CONF_ADSB_JSON_ATTRIBUTE,
     SensorType,
 )
 
@@ -40,6 +41,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data[DOMAIN][entry.entry_id] = {
         CONF_NAME: get_value(entry, CONF_NAME),
         CONF_ADSB_SENSOR: get_value(entry, CONF_ADSB_SENSOR),
+        CONF_ADSB_JSON_ATTRIBUTE: get_value(entry, CONF_ADSB_JSON_ATTRIBUTE),
         CONF_POLL: get_value(entry, CONF_POLL),
         CONF_SCAN_INTERVAL: get_value(entry, CONF_SCAN_INTERVAL),
         CONF_USE_FAS_ICONS: get_value(entry, CONF_USE_FAS_ICONS),

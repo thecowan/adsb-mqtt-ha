@@ -54,10 +54,12 @@ CONF_USE_FAS_ICONS = "use_fas_icons"
 CONF_SCAN_INTERVAL = "scan_interval"
 
 CONF_ADSB_SENSOR = "adsb_sensor"
+CONF_ADSB_JSON_ATTRIBUTE = "adsb_json_attribute"
 CONF_POLL = "poll"
 # Default values
 POLL_DEFAULT = False
 SCAN_INTERVAL_DEFAULT = 30
+JSON_ATTRIBUTE_DEFAULT = "data"
 
 
 class SensorType(StrEnum):
@@ -276,6 +278,7 @@ PLATFORM_OPTIONS_SCHEMA = vol.Schema(
 SENSOR_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_ADSB_SENSOR): cv.entity_id,
+        vol.Optional(CONF_ADSB_JSON_ATTRIBUTE): cv.string,
         vol.Optional(CONF_ICON_TEMPLATE): cv.template,
         vol.Optional(CONF_ENTITY_PICTURE_TEMPLATE): cv.template,
         vol.Optional(CONF_FRIENDLY_NAME): cv.string,
@@ -322,6 +325,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
             name=device_config.get(CONF_NAME),
             unique_id=device_config.get(CONF_UNIQUE_ID),
             adsb_entity=device_config.get(CONF_ADSB_SENSOR),
+            adsb_json_attribute=device_config.get(CONF_ADSB_JSON_ATTRIBUTE, JSON_ATTRIBUTE_DEFAULT),
             should_poll=device_config.get(CONF_POLL, POLL_DEFAULT),
             scan_interval=device_config.get(
                 CONF_SCAN_INTERVAL, timedelta(seconds=SCAN_INTERVAL_DEFAULT)
@@ -371,6 +375,7 @@ async def async_setup_entry(
         name=data[CONF_NAME],
         unique_id=f"{config_entry.unique_id}",
         adsb_entity=data[CONF_ADSB_SENSOR],
+        adsb_json_attribute=data[CONF_ADSB_JSON_ATTRIBUTE],
         should_poll=data[CONF_POLL],
         scan_interval=timedelta(
             seconds=data.get(CONF_SCAN_INTERVAL, SCAN_INTERVAL_DEFAULT)
@@ -535,6 +540,7 @@ class DeviceAdsbInfo:
         name: str,
         unique_id: str,
         adsb_entity: str,
+        adsb_json_attribute: str,
         should_poll: bool,
         scan_interval: timedelta,
     ):
@@ -549,6 +555,7 @@ class DeviceAdsbInfo:
         )
         self.extra_state_attributes = {}
         self._adsb_entity = adsb_entity
+        self._adsb_json_attribute = adsb_json_attribute
         self._adsb_info = None
         self._should_poll = should_poll
         self.sensors = []
@@ -588,8 +595,7 @@ class DeviceAdsbInfo:
     async def _new_adsb_state(self, state):
         if _is_valid_state(state):
             hass = self.hass
-            # TODO - hardcoded attribute
-            info = state.attributes.get("nearest_aircraft")
+            info = state.attributes.get(self._adsb_json_attribute)
             temp = util.convert(state.state, float)
             # TODO - check it's valid?
             self._info = info
@@ -601,7 +607,6 @@ class DeviceAdsbInfo:
     async def tracked_count(self) -> (int, dict):
         # TODO: go through and unhardcode these
         return (len(self._info), {'raw': self._info})
-
 
     # TODO: error handling
     @compute_once_lock(SensorType.CLOSEST_AIRCRAFT)
