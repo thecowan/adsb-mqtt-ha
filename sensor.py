@@ -58,7 +58,6 @@ CONF_POLL = "poll"
 # Default values
 POLL_DEFAULT = False
 SCAN_INTERVAL_DEFAULT = 30
-DISPLAY_PRECISION = 2
 
 
 class SensorType(StrEnum):
@@ -795,8 +794,4 @@ def _is_valid_state(state) -> bool:
     if state is not None:
         if state.state not in (STATE_UNKNOWN, STATE_UNAVAILABLE):
             return True
-            #try:
-            #    return not math.isnan(float(state.state))
-            #except ValueError:
-            #    pass
     return False
