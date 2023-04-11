@@ -602,13 +602,16 @@ class DeviceAdsbInfo:
     @compute_once_lock(SensorType.TRACKED_COUNT)
     async def tracked_count(self) -> (int, dict):
         # TODO: go through and unhardcode these
+        if self._info is None:
+            return 0
         return (len(self._info), {'raw': self._info})
 
     # TODO: error handling
     @compute_once_lock(SensorType.CLOSEST_AIRCRAFT)
     async def closest_aircraft(self) -> (str, dict, str):
-        # TODO: go unavailable if not working - and set URL to None
         # TODO - don't rely on this being sorted!
+        if not self._info:
+            return None
         closest = self._info[0]
 
         # TODO: don't hardcode r
@@ -644,12 +647,16 @@ class DeviceAdsbInfo:
     # TODO deduplicate
     @compute_once_lock(SensorType.CLOSEST_AIRCRAFT_GROUND_SPEED)
     async def closest_aircraft_ground_speed(self) -> float:
+        if not self._info:
+            return None
         closest = self._info[0]
         speed = closest.get('gs')
         return speed
 
     @compute_once_lock(SensorType.CLOSEST_AIRCRAFT_HEADING)
     async def closest_aircraft_heading(self) -> (float, dict):
+        if not self._info:
+            return None
         closest = self._info[0]
         heading = closest.get('track')
         attrs = {
@@ -662,6 +669,8 @@ class DeviceAdsbInfo:
 
     @compute_once_lock(SensorType.CLOSEST_AIRCRAFT_BAROMETRIC_ALTITUDE)
     async def closest_aircraft_barometric_altitude(self) -> (float, dict):
+        if not self._info:
+            return None
         closest = self._info[0]
         alt = closest.get('alt_baro')
         baro_rate = closest.get('baro_rate')
@@ -677,6 +686,8 @@ class DeviceAdsbInfo:
 
     @compute_once_lock(SensorType.CLOSEST_AIRCRAFT_DISTANCE)
     async def closest_aircraft_distance(self) -> float:
+        if not self._info:
+            return None
         closest = self._info[0]
         lat = float(closest['lat'])
         long =  float(closest['lon'])
@@ -686,6 +697,8 @@ class DeviceAdsbInfo:
     async def closest_aircraft_bearing(self) -> (float, dict):
         # TODO - use one in JSON if it's there?
         # TODO - allow specification of different origin
+        if not self._info:
+            return None
         closest = self._info[0]
         lat = float(closest['lat'])
         long =  float(closest['lon'])
@@ -699,10 +712,9 @@ class DeviceAdsbInfo:
 
     @compute_once_lock(SensorType.CLOSEST_AIRCRAFT_APPROACHING)
     async def closest_aircraft_approaching(self) -> str:
-        closest = self._info[0]
-        # TODO - probs not working
-        if closest is None:
+        if not self._info:
             return None
+        closest = self._info[0]
         track = closest.get('track')
         if track is None or track == '':
             return None
@@ -718,9 +730,9 @@ class DeviceAdsbInfo:
 
     @compute_once_lock(SensorType.CLOSEST_AIRCRAFT_CPA)
     async def closest_aircraft_cpa(self) -> (float, dict):
-        closest = self._info[0]
-        if closest is None:
+        if not self._info:
             return None
+        closest = self._info[0]
 
         lat = float(closest['lat'])
         long =  float(closest['lon'])
