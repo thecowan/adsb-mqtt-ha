@@ -28,6 +28,9 @@ from homeassistant.const import (
     CONF_UNIQUE_ID,
     STATE_UNAVAILABLE,
     STATE_UNKNOWN,
+    UnitOfLength,
+    UnitOfSpeed,
+    DEGREE,
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import TemplateError
@@ -129,7 +132,7 @@ SENSOR_TYPES = {
         "icon": SensorType.CLOSEST_AIRCRAFT_GROUND_SPEED.default_icon(),
         "state_class": SensorStateClass.MEASUREMENT,
         "device_class": SensorDeviceClass.SPEED,
-        "native_unit_of_measurement": "kn",
+        "native_unit_of_measurement": UnitOfSpeed.KNOTS,
         "suggested_display_precision": 1,
     },
     SensorType.CLOSEST_AIRCRAFT_HEADING: {
@@ -137,7 +140,7 @@ SENSOR_TYPES = {
         "name": SensorType.CLOSEST_AIRCRAFT_HEADING.to_name(),
         "icon": SensorType.CLOSEST_AIRCRAFT_HEADING.default_icon(),
         "state_class": SensorStateClass.MEASUREMENT,
-        "native_unit_of_measurement": "°",
+        "native_unit_of_measurement": DEGREE,
         "suggested_display_precision": 1,
     },
     SensorType.CLOSEST_AIRCRAFT_BAROMETRIC_ALTITUDE: {
@@ -145,8 +148,8 @@ SENSOR_TYPES = {
         "name": SensorType.CLOSEST_AIRCRAFT_BAROMETRIC_ALTITUDE.to_name(),
         "icon": SensorType.CLOSEST_AIRCRAFT_BAROMETRIC_ALTITUDE.default_icon(),
         "state_class": SensorStateClass.MEASUREMENT,
-        "native_unit_of_measurement": "ft",
-        # Should be DISTANCE device class but that doesn't support "ft" as a measurement?
+        "device_class": SensorDeviceClass.DISTANCE,
+        "native_unit_of_measurement": UnitOfLength.FEET,
         "suggested_display_precision": 0,
     },
     SensorType.CLOSEST_AIRCRAFT_DISTANCE: {
@@ -154,8 +157,8 @@ SENSOR_TYPES = {
         "name": SensorType.CLOSEST_AIRCRAFT_DISTANCE.to_name(),
         "icon": SensorType.CLOSEST_AIRCRAFT_DISTANCE.default_icon(),
         "state_class": SensorStateClass.MEASUREMENT,
-        # TODO change all these to constants?
-        "native_unit_of_measurement": "km",
+        "device_class": SensorDeviceClass.DISTANCE,
+        "native_unit_of_measurement": UnitOfLength.KILOMETERS,
         "suggested_display_precision": 3,
     },
     SensorType.CLOSEST_AIRCRAFT_BEARING: {
@@ -163,7 +166,7 @@ SENSOR_TYPES = {
         "name": SensorType.CLOSEST_AIRCRAFT_BEARING.to_name(),
         "icon": SensorType.CLOSEST_AIRCRAFT_BEARING.default_icon(),
         "state_class": SensorStateClass.MEASUREMENT,
-        "native_unit_of_measurement": "°",
+        "native_unit_of_measurement": DEGREE,
         "suggested_display_precision": 1,
     },
     SensorType.CLOSEST_AIRCRAFT_APPROACHING: {
@@ -182,7 +185,7 @@ SENSOR_TYPES = {
         "name": SensorType.CLOSEST_AIRCRAFT_CPA.to_name(),
         "icon": SensorType.CLOSEST_AIRCRAFT_CPA.default_icon(),
         "state_class": SensorStateClass.MEASUREMENT,
-        "native_unit_of_measurement": "km",
+        "native_unit_of_measurement": UnitOfLength.KILOMETERS,
         "suggested_display_precision": 3,
     },
 }
