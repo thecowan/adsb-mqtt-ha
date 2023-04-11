@@ -50,7 +50,7 @@ _LOGGER = logging.getLogger(__name__)
 
 CONF_ENABLED_SENSORS = "enabled_sensors"
 CONF_SENSOR_TYPES = "sensor_types"
-CONF_CUSTOM_ICONS = "custom_icons"
+CONF_USE_FAS_ICONS = "use_fas_icons"
 CONF_SCAN_INTERVAL = "scan_interval"
 
 CONF_ADSB_SENSOR = "adsb_sensor"
@@ -104,7 +104,6 @@ ENTITY_ICONS = {
     SensorType.CLOSEST_AIRCRAFT_CPA: "mdi:map-marker-radius",
 }
 
-# TODO: override with these?
 FAS_ENTITY_ICONS = {
     SensorType.CLOSEST_AIRCRAFT_BAROMETRIC_ALTITUDE: "fas:ruler-vertical",
     SensorType.CLOSEST_AIRCRAFT_DISTANCE: "fas:ruler-horizontal",
@@ -269,7 +268,7 @@ PLATFORM_OPTIONS_SCHEMA = vol.Schema(
     {
         vol.Optional(CONF_POLL): cv.boolean,
         vol.Optional(CONF_SCAN_INTERVAL): cv.time_period,
-        vol.Optional(CONF_CUSTOM_ICONS): cv.boolean,
+        vol.Optional(CONF_USE_FAS_ICONS): cv.boolean,
         vol.Optional(CONF_SENSOR_TYPES): cv.ensure_list,
     },
     extra=vol.REMOVE_EXTRA,
@@ -339,7 +338,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
                 icon_template=device_config.get(CONF_ICON_TEMPLATE),
                 entity_picture_template=device_config.get(CONF_ENTITY_PICTURE_TEMPLATE),
                 sensor_type=SensorType.from_string(sensor_type),
-                custom_icons=device_config.get(CONF_CUSTOM_ICONS, False),
+                fas_icons=device_config.get(CONF_USE_FAS_ICONS, False),
                 is_config_entry=False,
             )
             for sensor_type in device_config.get(
@@ -384,7 +383,7 @@ async def async_setup_entry(
             device=compute_device,
             entity_description=SensorEntityDescription(**SENSOR_TYPES[sensor_type]),
             sensor_type=sensor_type,
-            custom_icons=data[CONF_CUSTOM_ICONS],
+            fas_icons=data[CONF_USE_FAS_ICONS],
         )
         for sensor_type in SensorType
     ]
@@ -417,7 +416,7 @@ class SensorAdsbInfo(SensorEntity):
         entity_description: SensorEntityDescription,
         icon_template: Template = None,
         entity_picture_template: Template = None,
-        custom_icons: bool = False,
+        fas_icons: bool = False,
         is_config_entry: bool = True,
     ) -> None:
         """Initialize the sensor."""
@@ -429,9 +428,9 @@ class SensorAdsbInfo(SensorEntity):
             self.entity_description.name = (
                 f"{self._device.name} {self.entity_description.name}"
             )
-        if custom_icons:
-            if self.entity_description.key in ENTITY_ICONS:
-                self.entity_description.icon = ENTITY_ICONS[self.entity_description.key]
+        if fas_icons:
+            if self.entity_description.key in FAS_ENTITY_ICONS:
+                self.entity_description.icon = FAS_ENTITY_ICONS[self.entity_description.key]
         self._icon_template = icon_template
         self._entity_picture_template = entity_picture_template
         self._attr_native_value = None

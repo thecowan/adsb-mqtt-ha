@@ -23,7 +23,7 @@ from .config import OPTIONS_SCHEMA
 from .config_flow import get_value
 from .const import DOMAIN, PLATFORMS, UPDATE_LISTENER
 from .sensor import (
-    CONF_CUSTOM_ICONS,
+    CONF_USE_FAS_ICONS,
     CONF_ENABLED_SENSORS,
     CONF_POLL,
     CONF_SCAN_INTERVAL,
@@ -42,7 +42,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         CONF_ADSB_SENSOR: get_value(entry, CONF_ADSB_SENSOR),
         CONF_POLL: get_value(entry, CONF_POLL),
         CONF_SCAN_INTERVAL: get_value(entry, CONF_SCAN_INTERVAL),
-        CONF_CUSTOM_ICONS: get_value(entry, CONF_CUSTOM_ICONS),
+        CONF_USE_FAS_ICONS: get_value(entry, CONF_USE_FAS_ICONS),
     }
     if get_value(entry, CONF_ENABLED_SENSORS):
         hass.data[DOMAIN][entry.entry_id][CONF_ENABLED_SENSORS] = get_value(

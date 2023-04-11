@@ -15,7 +15,7 @@ import voluptuous as vol
 
 from .const import DEFAULT_NAME, DOMAIN
 from .sensor import (
-    CONF_CUSTOM_ICONS,
+    CONF_USE_FAS_ICONS,
     CONF_ENABLED_SENSORS,
     CONF_POLL,
     CONF_SCAN_INTERVAL,
@@ -392,8 +392,8 @@ def build_schema(
                     ),
                 ): vol.All(vol.Coerce(int), vol.Range(min=1)),
                 vol.Optional(
-                    CONF_CUSTOM_ICONS,
-                    default=get_value(config_entry, CONF_CUSTOM_ICONS, False),
+                    CONF_USE_FAS_ICONS,
+                    default=get_value(config_entry, CONF_USE_FAS_ICONS, False),
                 ): bool,
             }
         )
