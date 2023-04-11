@@ -95,6 +95,10 @@ class SensorType(StrEnum):
                 f"Unknown sensor type: {string}. Please check https://github.com/thecowan/adsb_info/blob/master/documentation/yaml.md for valid options."
             )
 
+class ApproachingState(StrEnum):
+    APPROACHING = "approaching"
+    RECEDING = "receding"
+
 ENTITY_ICONS = {
     SensorType.TRACKED_COUNT: "mdi:airplane",
     SensorType.CLOSEST_AIRCRAFT: "mdi:airplane-marker",
@@ -174,11 +178,8 @@ SENSOR_TYPES = {
         "name": SensorType.CLOSEST_AIRCRAFT_APPROACHING.to_name(),
         "icon": SensorType.CLOSEST_AIRCRAFT_APPROACHING.default_icon(),
         "device_class": SensorDeviceClass.ENUM,
-        # TODO: enable translation?
-        # "translation_key": SensorType.DEW_POINT_PERCEPTION,
-        # TODO unhardcode a la
-        # "options": list(map(str, DewPointPerception)),
-        "options": ['approaching', 'receding', 'none'],
+        "translation_key": SensorType.CLOSEST_AIRCRAFT_APPROACHING,
+        "options": list(map(str, ApproachingState)),
     },
     SensorType.CLOSEST_AIRCRAFT_CPA: {
         "key": SensorType.CLOSEST_AIRCRAFT_CPA,
@@ -728,8 +729,8 @@ class DeviceAdsbInfo:
 
         relative = int(bearing - track) % 360
         if relative > 90 and relative < 270:
-            return "approaching"
-        return "receding"
+            return ApproachingState.APPROACHING
+        return ApproachingState.RECEDING
 
     @compute_once_lock(SensorType.CLOSEST_AIRCRAFT_CPA)
     async def closest_aircraft_cpa(self) -> (float, dict):

@@ -22,7 +22,7 @@
       "no_sensors_advanced": "No temperature or humidity sensors found."
     },
     "error": {
-      "adsb_info_not_found": "Temperature sensor not found"
+      "adsb_info_not_found": "ADSB sensor not found"
     },
     "step": {
       "user": {
@@ -41,16 +41,10 @@
   },
   "entity": {
     "sensor": {
-      "dew_point_perception": {
+      "closest_aircraft_approaching": {
         "state": {
-          "dry": "A bit dry for some",
-          "very_comfortable": "Very comfortable",
-          "comfortable": "Comfortable",
-          "ok_but_humid": "OK for most, but humid",
-          "somewhat_uncomfortable": "Somewhat uncomfortable",
-          "quite_uncomfortable": "Very humid, quite uncomfortable",
-          "extremely_uncomfortable": "Extremely uncomfortable, oppressive",
-          "severely_high": "Severely high, even deadly for asthma related illnesses"
+          "approaching": "Approaching",
+          "receding": "Receding"
         }
       }
     }
