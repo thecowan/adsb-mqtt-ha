@@ -661,9 +661,14 @@ class DeviceAdsbInfo:
     async def closest_aircraft_barometric_altitude(self) -> (float, dict):
         closest = self._info[0]
         alt = closest.get('alt_baro')
+        baro_rate = closest.get('baro_rate')
+        if baro_rate is None:
+            baro_rate = STATE_UNKNOWN
+        else:
+            baro_rate = round(baro_rate, 2)
         attrs = {
             # TODO - fall back to geom rate?
-            'rate': round(closest.get('baro_rate'), 1),
+            'rate': baro_rate,
         }
         return (alt, attrs)
 
