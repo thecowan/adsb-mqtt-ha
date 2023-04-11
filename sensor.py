@@ -740,7 +740,7 @@ class DeviceAdsbInfo:
         if climb is None or alt is None:
             cpa_est_altitude = STATE_UNKNOWN
         else:
-            cpa_est_altitude = alt + (cpa_result[1] * climb)
+            cpa_est_altitude = round(alt + (cpa_result[1] * climb), 0)
 
         dist_to_cover = distanceAfterSeconds(speed, cpa_secs)
         cpa_point = gcc.point_given_start_and_bearing((long, lat), track, dist_to_cover, 'meters')
@@ -748,7 +748,7 @@ class DeviceAdsbInfo:
         cpa_long = cpa_point[0]
 
         attrs = {
-            'altitude_est': round(cpa_est_altitude, 0),
+            'altitude_est': cpa_est_altitude,
             'time_est': round(cpa_secs, 1),
             'latitude': cpa_lat,
             'longitude': cpa_long,
