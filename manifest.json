@@ -1,0 +1,11 @@
+{
+  "domain": "adsb_info",
+  "name": "ADSB Info",
+  "codeowners": ["@thecowan"],
+  "config_flow": false,
+  "documentation": "https://github.com/thecowan/adsb_info/blob/master/README.md",
+  "iot_class": "calculated",
+  "issue_tracker": "https://github.com/thecowan/adsb_info/issues",
+  "version": "1.0.0",
+  "requirements": ["great-circle-calculator>=1.3.1"]
+}

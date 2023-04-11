@@ -1,0 +1,58 @@
+{
+  "options": {
+    "error": {
+      "adsb_info_not_found": "ADSB sensor not found"
+    },
+    "step": {
+      "init": {
+        "title": "ADSB Info settings",
+        "data": {
+          "adsb_sensor": "ADSB sensor",
+          "poll": "Enable Polling",
+          "scan_interval": "Poll interval (seconds)",
+          "custom_icons": "Use custom icons pack"
+        }
+      }
+    }
+  },
+  "config": {
+    "abort": {
+      "already_configured": "This combination of temperature and humidity sensors is already configured",
+      "no_sensors": "No temperature or humidity sensors found. Try again in advanced mode.",
+      "no_sensors_advanced": "No temperature or humidity sensors found."
+    },
+    "error": {
+      "adsb_info_not_found": "Temperature sensor not found"
+    },
+    "step": {
+      "user": {
+        "title": "Thermal comfort settings",
+        "data": {
+          "name": "Name",
+          "temperature_sensor": "Temperature sensor",
+          "humidity_sensor": "Humidity sensor",
+          "poll": "Enable Polling",
+          "scan_interval": "Poll interval (seconds)",
+          "custom_icons": "Use custom icons pack",
+          "enabled_sensors": "Enabled sensors"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "dew_point_perception": {
+        "state": {
+          "dry": "A bit dry for some",
+          "very_comfortable": "Very comfortable",
+          "comfortable": "Comfortable",
+          "ok_but_humid": "OK for most, but humid",
+          "somewhat_uncomfortable": "Somewhat uncomfortable",
+          "quite_uncomfortable": "Very humid, quite uncomfortable",
+          "extremely_uncomfortable": "Extremely uncomfortable, oppressive",
+          "severely_high": "Severely high, even deadly for asthma related illnesses"
+        }
+      }
+    }
+  }
+}
