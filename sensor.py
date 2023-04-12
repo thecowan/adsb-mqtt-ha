@@ -6,6 +6,8 @@ from functools import wraps
 import logging
 import math
 from typing import Any
+from typing import Optional
+from typing import Tuple
 
 import great_circle_calculator.great_circle_calculator as gcc
 
@@ -418,7 +420,7 @@ class SensorAdsbInfo(SensorEntity):
         return self._available
 
     @property
-    def entity_picture(self) -> str | None:
+    def entity_picture(self) -> Optional[str]:
         return self._picture
 
     @property
@@ -568,7 +570,7 @@ class DeviceAdsbInfo:
             _LOGGER.info(f"ADSB info has an invalid value: {state}. Can't calculate new states.")
 
     @compute_once_lock(SensorType.TRACKED_COUNT)
-    async def tracked_count(self) -> (int, dict):
+    async def tracked_count(self) -> Optional[Tuple[int, dict]]:
         # TODO: go through and unhardcode these
         if self._info is None:
             return 0
@@ -576,28 +578,40 @@ class DeviceAdsbInfo:
 
     # TODO: error handling
     @compute_once_lock(SensorType.CLOSEST_AIRCRAFT)
-    async def closest_aircraft(self) -> (str, dict, str):
+    async def closest_aircraft(self) -> Optional[Tuple[str, dict, str]]:
         # TODO - don't rely on this being sorted!
         if not self._info:
             return None
         closest = self._info[0]
 
         # TODO: don't hardcode r
-        reg = closest['r'].strip()
+        reg = closest.get('r')
+        if reg:
+            reg = reg.strip()
+
+        flight = closest.get('flight')
+        if flight:
+            flight = flight.strip()
+
+        if not reg:
+            if not flight:
+                reg = "[???]"
+            else:
+                reg = f"[{flight}]"
 
         image = closest.get('image')
 
         category = (str(closest.get('category') or "") + "XX")[:2]
 
         attrs = {
-            'latitude': closest['lat'],
-            'longitude': closest['lon'],
+            'latitude': closest.get('lat'),
+            'longitude': closest.get('lon'),
             'operator': closest.get('operator'),
             'owner': closest.get('owner'),
-            'route': closest['route'],
-            'flight_number': closest['flight'],
-            'type': closest['desc'],
-            'type_code': closest['t'],
+            'route': closest.get('route'),
+            'flight_number': closest.get('flight'),
+            'type': closest.get('desc'),
+            'type_code': closest.get('t'),
             'category_code': category,
             'category': category,
         }
@@ -606,7 +620,7 @@ class DeviceAdsbInfo:
     # TODO: error handling
     # TODO deduplicate
     @compute_once_lock(SensorType.CLOSEST_AIRCRAFT_GROUND_SPEED)
-    async def closest_aircraft_ground_speed(self) -> float:
+    async def closest_aircraft_ground_speed(self) -> Optional[float]:
         if not self._info:
             return None
         closest = self._info[0]
@@ -614,7 +628,7 @@ class DeviceAdsbInfo:
         return speed
 
     @compute_once_lock(SensorType.CLOSEST_AIRCRAFT_HEADING)
-    async def closest_aircraft_heading(self) -> (float, dict):
+    async def closest_aircraft_heading(self) -> Optional[Tuple[float, dict]]:
         if not self._info:
             return None
         closest = self._info[0]
@@ -628,11 +642,13 @@ class DeviceAdsbInfo:
         return (heading, attrs)
 
     @compute_once_lock(SensorType.CLOSEST_AIRCRAFT_BAROMETRIC_ALTITUDE)
-    async def closest_aircraft_barometric_altitude(self) -> (float, dict):
+    async def closest_aircraft_barometric_altitude(self) -> Optional[Tuple[float, dict]]:
         if not self._info:
             return None
         closest = self._info[0]
         alt = closest.get('alt_baro')
+        if not alt:
+            return None
         baro_rate = closest.get('baro_rate')
         if baro_rate is None:
             baro_rate = STATE_UNKNOWN
@@ -645,23 +661,27 @@ class DeviceAdsbInfo:
         return (alt, attrs)
 
     @compute_once_lock(SensorType.CLOSEST_AIRCRAFT_DISTANCE)
-    async def closest_aircraft_distance(self) -> float:
+    async def closest_aircraft_distance(self) -> Optional[float]:
         if not self._info:
             return None
         closest = self._info[0]
-        lat = float(closest['lat'])
-        long =  float(closest['lon'])
+        lat = float(closest.get('lat'))
+        long =  float(closest.get('lon'))
+        if lat == 0.0 and long == 0.0:
+            return None
         return self.hass.config.distance(lat, long)
 
     @compute_once_lock(SensorType.CLOSEST_AIRCRAFT_BEARING)
-    async def closest_aircraft_bearing(self) -> (float, dict):
+    async def closest_aircraft_bearing(self) -> Optional[Tuple[float, dict]]:
         # TODO - use one in JSON if it's there?
         # TODO - allow specification of different origin
         if not self._info:
             return None
         closest = self._info[0]
-        lat = float(closest['lat'])
-        long =  float(closest['lon'])
+        lat = float(closest.get('lat'))
+        long =  float(closest.get('lon'))
+        if lat == 0.0 and long == 0.0:
+            return None
         bearing = gcc.bearing_at_p1((self.hass.config.longitude, self.hass.config.latitude), (long, lat))
         attrs = {
             'compass': to_compass(bearing, BEARINGS),
@@ -671,16 +691,18 @@ class DeviceAdsbInfo:
         return (bearing, attrs)
 
     @compute_once_lock(SensorType.CLOSEST_AIRCRAFT_APPROACHING)
-    async def closest_aircraft_approaching(self) -> str:
+    async def closest_aircraft_approaching(self) -> Optional[str]:
         if not self._info:
             return None
         closest = self._info[0]
         track = closest.get('track')
-        if track is None or track == '':
+        if not track:
             return None
 
-        lat = float(closest['lat'])
-        long =  float(closest['lon'])
+        lat = float(closest.get('lat'))
+        long =  float(closest.get('lon'))
+        if lat == 0.0 and long == 0.0:
+            return None
         bearing = gcc.bearing_at_p1((self.hass.config.longitude, self.hass.config.latitude), (long, lat))
 
         relative = int(bearing - track) % 360
@@ -689,22 +711,28 @@ class DeviceAdsbInfo:
         return ApproachingState.RECEDING
 
     @compute_once_lock(SensorType.CLOSEST_AIRCRAFT_CPA)
-    async def closest_aircraft_cpa(self) -> (float, dict):
+    async def closest_aircraft_cpa(self) -> Optional[Tuple[float, dict]]:
         if not self._info:
             return None
         closest = self._info[0]
 
-        lat = float(closest['lat'])
-        long =  float(closest['lon'])
+        lat = float(closest.get('lat'))
+        long =  float(closest.get('lon'))
+        if lat == 0.0 and long == 0.0:
+            return None
         distance = self.hass.config.distance(lat, long)
         distance_nm = distance / 1.852
         bearing = gcc.bearing_at_p1((self.hass.config.longitude, self.hass.config.latitude), (long, lat))
         track = closest.get('track')
+        if not track:
+            return None
         speed = closest.get('gs')
+        if not speed:
+            return None
         relative = int(bearing - track) % 360
         if relative < 90 or relative > 270:
             # It's receding
-            return STATE_UNAVAILABLE
+            return None
 
         cpa_result = cpa(0, 0, speed, track, distance_nm, bearing)
 
