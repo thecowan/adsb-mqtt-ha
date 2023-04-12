@@ -633,6 +633,8 @@ class DeviceAdsbInfo:
             return None
         closest = self._info[0]
         heading = closest.get('track')
+        if not heading:
+            return None
         attrs = {
             'rate': closest.get('track_rate'),
             'compass': to_compass(heading, BEARINGS),
