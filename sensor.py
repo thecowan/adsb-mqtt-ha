@@ -3,6 +3,7 @@ from asyncio import Lock
 from dataclasses import dataclass
 from datetime import timedelta
 from functools import wraps
+import json
 import logging
 import math
 from typing import Any
@@ -34,7 +35,8 @@ from homeassistant.const import (
     UnitOfSpeed,
     DEGREE,
 )
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.components import mqtt
 from homeassistant.exceptions import TemplateError
 from homeassistant.helpers import entity_registry
 import homeassistant.helpers.config_validation as cv
@@ -56,6 +58,8 @@ CONF_ENABLED_SENSORS = "enabled_sensors"
 CONF_SENSOR_TYPES = "sensor_types"
 CONF_USE_FAS_ICONS = "use_fas_icons"
 CONF_SCAN_INTERVAL = "scan_interval"
+CONF_DATA_SOURCE = "data_source"
+CONF_MQTT_TOPIC = "mqtt_topic"
 
 CONF_ADSB_SENSOR = "adsb_sensor"
 CONF_ADSB_JSON_ATTRIBUTE = "adsb_json_attribute"
@@ -64,6 +68,21 @@ CONF_POLL = "poll"
 POLL_DEFAULT = False
 SCAN_INTERVAL_DEFAULT = 30
 JSON_ATTRIBUTE_DEFAULT = "data"
+DATA_SOURCE_DEFAULT = "SENSOR"
+
+
+class DataSourceType(StrEnum):
+    MQTT = "MQTT"
+    SENSOR = "SENSOR"
+
+    @classmethod
+    def from_string(cls, string: str) -> "DataSourceType":
+        if string in list(cls):
+            return cls(string)
+        else:
+            raise ValueError(
+                f"Unknown data source type: {string}. Please check https://github.com/thecowan/adsb_info/blob/master/documentation/yaml.md for valid options."
+            )
 
 
 class SensorType(StrEnum):
@@ -234,6 +253,8 @@ def distanceAfterSeconds(speedKts, timeSeconds):
 
 DEFAULT_SENSOR_TYPES = list(SENSOR_TYPES.keys())
 
+
+
 PLATFORM_OPTIONS_SCHEMA = vol.Schema(
     {
         vol.Optional(CONF_POLL): cv.boolean,
@@ -246,12 +267,17 @@ PLATFORM_OPTIONS_SCHEMA = vol.Schema(
 
 SENSOR_SCHEMA = vol.Schema(
     {
-        vol.Required(CONF_ADSB_SENSOR): cv.entity_id,
+        # TODO - work out how to use lower-case versions?
+        #vol.Optional(CONF_DATA_SOURCE): cv.enum(DataSourceType),
+        vol.Optional(CONF_DATA_SOURCE): cv.string,
+        # TODO - work out how to make this conditional?
+        vol.Optional(CONF_ADSB_SENSOR): cv.entity_id,
         vol.Optional(CONF_ADSB_JSON_ATTRIBUTE): cv.string,
         vol.Optional(CONF_ICON_TEMPLATE): cv.template,
         vol.Optional(CONF_FRIENDLY_NAME): cv.string,
         vol.Required(CONF_UNIQUE_ID): cv.string,
         vol.Optional(CONF_NAME): cv.string,
+        vol.Optional(CONF_MQTT_TOPIC): cv.string,
     }
 ).extend(PLATFORM_OPTIONS_SCHEMA.schema)
 
@@ -288,6 +314,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
 
     for device_config in devices:
         device_config = options | device_config
+
         compute_device = DeviceAdsbInfo(
             hass=hass,
             name=device_config.get(CONF_NAME),
@@ -295,6 +322,8 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
             adsb_entity=device_config.get(CONF_ADSB_SENSOR),
             adsb_json_attribute=device_config.get(CONF_ADSB_JSON_ATTRIBUTE, JSON_ATTRIBUTE_DEFAULT),
             should_poll=device_config.get(CONF_POLL, POLL_DEFAULT),
+            data_source=DataSourceType.from_string(device_config.get(CONF_DATA_SOURCE, DATA_SOURCE_DEFAULT)),
+            mqtt_topic=device_config.get(CONF_MQTT_TOPIC, ''),
             scan_interval=device_config.get(
                 CONF_SCAN_INTERVAL, timedelta(seconds=SCAN_INTERVAL_DEFAULT)
             ),
@@ -344,6 +373,8 @@ async def async_setup_entry(
         adsb_entity=data[CONF_ADSB_SENSOR],
         adsb_json_attribute=data[CONF_ADSB_JSON_ATTRIBUTE],
         should_poll=data[CONF_POLL],
+        data_source=DataSourceType.from_string(data[CONF_DATA_SOURCE]),
+        mqtt_topic=data[CONF_MQTT_TOPIC],
         scan_interval=timedelta(
             seconds=data.get(CONF_SCAN_INTERVAL, SCAN_INTERVAL_DEFAULT)
         ),
@@ -438,6 +469,9 @@ class SensorAdsbInfo(SensorEntity):
         if self._device.compute_states[self._sensor_type].needs_update:
             self.async_schedule_update_ha_state(True)
 
+        if self._device._data_source == DataSourceType.MQTT:
+            await self._device._register_mqtt_listener()
+
     async def async_update(self):
         """Update the state of the sensor."""
         value = await getattr(self._device, self._sensor_type)()
@@ -509,6 +543,8 @@ class DeviceAdsbInfo:
         adsb_json_attribute: str,
         should_poll: bool,
         scan_interval: timedelta,
+        data_source: DataSourceType,
+        mqtt_topic: str,
     ):
         """Initialize the sensor."""
         self.hass = hass
@@ -530,24 +566,34 @@ class DeviceAdsbInfo:
             for sensor_type in SENSOR_TYPES.keys()
         }
 
-        async_track_state_change_event(
-            self.hass, self._adsb_entity, self.adsb_state_listener
-        )
+        self._data_source = data_source
+        self._mqtt_topic = mqtt_topic
+        self._mqtt_registered = False
+        self._mqtt_lock = Lock()
 
-        hass.async_create_task(
-            self._new_adsb_state(hass.states.get(adsb_entity))
-        )
+        if self._data_source == DataSourceType.SENSOR:
+            async_track_state_change_event(
+                self.hass, self._adsb_entity, self.adsb_state_listener
+            )
+
+            hass.async_create_task(
+                self._new_adsb_state(hass.states.get(adsb_entity))
+            )
+
+            if self._should_poll:
+                if scan_interval is None:
+                    scan_interval = timedelta(seconds=SCAN_INTERVAL_DEFAULT)
+                async_track_time_interval(
+                    self.hass,
+                    self.async_update_sensors,
+                    scan_interval,
+                )
+        else:
+            # MQTT, we'll set this up as our sensors are added to hass
+            pass
 
         hass.async_create_task(self._set_version())
 
-        if self._should_poll:
-            if scan_interval is None:
-                scan_interval = timedelta(seconds=SCAN_INTERVAL_DEFAULT)
-            async_track_time_interval(
-                self.hass,
-                self.async_update_sensors,
-                scan_interval,
-            )
 
     async def _set_version(self):
         self._device_info["sw_version"] = (
@@ -562,12 +608,32 @@ class DeviceAdsbInfo:
         if _is_valid_state(state):
             hass = self.hass
             info = state.attributes.get(self._adsb_json_attribute)
-            temp = util.convert(state.state, float)
             # TODO - check it's valid?
             self._info = info
             await self.async_update()
         else:
-            _LOGGER.info(f"ADSB info has an invalid value: {state}. Can't calculate new states.")
+            _LOGGER.info(f"ADSB info has an invalid value: {state}. Can't calculate new states. This is OK if during initial boot.")
+
+    async def adsb_mqtt_listener(self, message):
+        """Handle ADSB device mqtt_message."""
+        payload = json.loads(message.payload)
+        # TODO: definitely don't hardcode this!
+        self._info = payload.get('nearest_aircraft')
+        await self.async_update()
+
+    # TODO - there is absolutely a better way to do this than this complicated callback mechanism
+    async def _register_mqtt_listener(self):
+        async with self._mqtt_lock:
+            if self._mqtt_registered:
+                return
+
+            await mqtt.async_subscribe(
+                hass=self.hass,
+                topic=self._mqtt_topic,
+                msg_callback=self.adsb_mqtt_listener,
+                qos=1
+            )
+            self._mqtt_registered = True
 
     @compute_once_lock(SensorType.TRACKED_COUNT)
     async def tracked_count(self) -> Optional[Tuple[int, dict]]:

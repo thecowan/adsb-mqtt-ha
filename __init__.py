@@ -27,6 +27,8 @@ from .sensor import (
     CONF_ENABLED_SENSORS,
     CONF_POLL,
     CONF_SCAN_INTERVAL,
+    CONF_DATA_SOURCE,
+    CONF_MQTT_TOPIC,
     CONF_ADSB_SENSOR,
     CONF_ADSB_JSON_ATTRIBUTE,
     SensorType,
@@ -44,6 +46,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         CONF_ADSB_JSON_ATTRIBUTE: get_value(entry, CONF_ADSB_JSON_ATTRIBUTE),
         CONF_POLL: get_value(entry, CONF_POLL),
         CONF_SCAN_INTERVAL: get_value(entry, CONF_SCAN_INTERVAL),
+        CONF_DATA_SOURCE: get_value(entry, CONF_DATA_SOURCE),
+        CONF_MQTT_TOPIC: get_value(entry, CONF_MQTT_TOPIC),
         CONF_USE_FAS_ICONS: get_value(entry, CONF_USE_FAS_ICONS),
     }
     if get_value(entry, CONF_ENABLED_SENSORS):
