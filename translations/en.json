@@ -19,8 +19,7 @@
     "flow_title": "ADSB {server}",
     "abort": {
       "already_configured": "This ADSB tracker is already configured",
-      "no_sensors": "No temperature or humidity sensors found. Try again in advanced mode.",
-      "no_sensors_advanced": "No temperature or humidity sensors found."
+      "no_sensors": "No temperature or humidity sensors found."
     },
     "error": {
       "adsb_info_not_found": "ADSB sensor not found"

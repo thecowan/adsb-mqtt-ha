@@ -51,7 +51,6 @@ def get_value(
 def build_schema(
     config_entry: config_entries | None,
     hass: HomeAssistant,
-    show_advanced: bool = False,
     mqtt_auto: bool = False,
     step: str = "user",
     detected_name: str = DEFAULT_NAME,
@@ -60,7 +59,6 @@ def build_schema(
 
     :param config_entry: config entry for getting current parameters on None
     :param hass: Home Assistant instance
-    :param show_advanced: bool: should we show advanced options?
     :param step: for which step we should build schema
     :return: Configuration schema with default parameters
     """
@@ -93,7 +91,6 @@ def build_schema(
                 ): str,
             },
         )
-    if show_advanced:
         schema = schema.extend(
             {
                 vol.Optional(
@@ -197,7 +194,6 @@ class AdsbInfoConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 config_entry=None,
                 hass=self.hass,
                 mqtt_auto=True,
-                show_advanced=False,
                 detected_name=self._server,
             )
             return self.async_show_form(
@@ -249,14 +245,10 @@ class AdsbInfoConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         schema = build_schema(
             config_entry=None,
             hass=self.hass,
-            show_advanced=self.show_advanced_options,
         )
 
         if schema is None:
-            if self.show_advanced_options:
-                reason = "no_sensors_advanced"
-            else:
-                reason = "no_sensors"
+            reason = "no_sensors"
             return self.async_abort(reason=reason)
 
         return self.async_show_form(
@@ -287,7 +279,6 @@ class AdsbInfoOptionsFlow(config_entries.OptionsFlow):
             data_schema=build_schema(
                 config_entry=self.config_entry,
                 hass=self.hass,
-                show_advanced=self.show_advanced_options,
                 step="init",
             ),
             errors=errors,
