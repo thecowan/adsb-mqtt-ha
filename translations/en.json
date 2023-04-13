@@ -16,6 +16,7 @@
     }
   },
   "config": {
+    "flow_title": "ADSB {server}",
     "abort": {
       "already_configured": "This ADSB tracker is already configured",
       "no_sensors": "No temperature or humidity sensors found. Try again in advanced mode.",
@@ -36,6 +37,13 @@
           "use_fas_icons": "Use FontAwesome icons",
           "enabled_sensors": "Enabled sensors"
         }
+      },
+      "confirm": {
+        "title": "{server}",
+        "description": "Have detected a device broadcasting MQTT ADSB info at {discovery_topic} which can be automatically configured.",
+        "data": {
+          "name": "Name"
+	}
       }
     }
   },
