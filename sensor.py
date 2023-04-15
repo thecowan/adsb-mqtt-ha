@@ -644,13 +644,31 @@ class DeviceAdsbInfo:
             return 0
         return (len(self._info), {'raw': self._info})
 
+    def closest(self, max_dist=99999999, max_age=99999999, exclude_ground=True):
+        if not self._info:
+            return None
+        for craft in self._info:
+            if not craft['computed_has_coords']:
+                next
+            if exclude_ground and craft.get('alt_baro') == 'ground':
+                next
+            if craft.get('computed_dist') > max_dist:
+                next
+            if craft.get('seen') > max_age:
+                next
+            return craft
+        return None
+
+    def closest_interesting(self):
+        # TODO pull these from preferences
+        return self.closest(max_age=60)
+
     # TODO: error handling
     @compute_once_lock(SensorType.CLOSEST_AIRCRAFT)
     async def closest_aircraft(self) -> Optional[Tuple[str, dict, str]]:
-        # TODO - don't rely on this being sorted!
-        if not self._info:
+        closest = self.closest_interesting()
+        if not closest:
             return None
-        closest = self._info[0]
 
         # TODO: don't hardcode r
         reg = closest.get('r')
@@ -689,15 +707,16 @@ class DeviceAdsbInfo:
     # TODO deduplicate
     @compute_once_lock(SensorType.CLOSEST_AIRCRAFT_GROUND_SPEED)
     async def closest_aircraft_ground_speed(self) -> Optional[float]:
-        if not self._info:
+        closest = self.closest_interesting()
+        if not closest:
             return None
-        closest = self._info[0]
         speed = closest.get('gs')
         return speed
 
     @compute_once_lock(SensorType.CLOSEST_AIRCRAFT_HEADING)
     async def closest_aircraft_heading(self) -> Optional[Tuple[float, dict]]:
-        if not self._info:
+        closest = self.closest_interesting()
+        if not closest:
             return None
         closest = self._info[0]
         heading = closest.get('track')
@@ -713,12 +732,14 @@ class DeviceAdsbInfo:
 
     @compute_once_lock(SensorType.CLOSEST_AIRCRAFT_BAROMETRIC_ALTITUDE)
     async def closest_aircraft_barometric_altitude(self) -> Optional[Tuple[float, dict]]:
-        if not self._info:
+        closest = self.closest_interesting()
+        if not closest:
             return None
-        closest = self._info[0]
         alt = closest.get('alt_baro')
         if not alt:
             return None
+        if alt == 'ground':
+            alt = 0
         baro_rate = closest.get('baro_rate')
         if baro_rate is None:
             baro_rate = STATE_UNKNOWN
@@ -732,18 +753,18 @@ class DeviceAdsbInfo:
 
     @compute_once_lock(SensorType.CLOSEST_AIRCRAFT_DISTANCE)
     async def closest_aircraft_distance(self) -> Optional[float]:
-        if not self._info:
+        closest = self.closest_interesting()
+        if not closest:
             return None
-        closest = self._info[0]
         return closest.get('computed_dist')
 
     @compute_once_lock(SensorType.CLOSEST_AIRCRAFT_BEARING)
     async def closest_aircraft_bearing(self) -> Optional[Tuple[float, dict]]:
         # TODO - use one in JSON if it's there?
         # TODO - allow specification of different origin
-        if not self._info:
+        closest = self.closest_interesting()
+        if not closest:
             return None
-        closest = self._info[0]
         bearing = closest.get('computed_bearing')
         if not bearing:
             return None
@@ -756,9 +777,9 @@ class DeviceAdsbInfo:
 
     @compute_once_lock(SensorType.CLOSEST_AIRCRAFT_APPROACHING)
     async def closest_aircraft_approaching(self) -> Optional[str]:
-        if not self._info:
+        closest = self.closest_interesting()
+        if not closest:
             return None
-        closest = self._info[0]
         track = closest.get('track')
         bearing = closest.get('computed_bearing')
         if not track or not bearing:
@@ -771,9 +792,9 @@ class DeviceAdsbInfo:
 
     @compute_once_lock(SensorType.CLOSEST_AIRCRAFT_CPA)
     async def closest_aircraft_cpa(self) -> Optional[Tuple[float, dict]]:
-        if not self._info:
+        closest = self.closest_interesting()
+        if not closest:
             return None
-        closest = self._info[0]
 
         lat = float(closest.get('lat') or 0.0)
         long = float(closest.get('lon') or 0.0)
@@ -822,6 +843,7 @@ class DeviceAdsbInfo:
     def preprocess_json(self, raw_json):
         processed = raw_json
         for craft in processed:
+            craft['computed_has_coords'] = False
             # TODO - option to allow geo preprocessing?
             lat = craft.get('lat')
             long = craft.get('lon')
@@ -829,6 +851,7 @@ class DeviceAdsbInfo:
                 lat = float(lat)
                 long = float(long)
                 bearing = gcc.bearing_at_p1((self.hass.config.longitude, self.hass.config.latitude), (long, lat))
+                craft['computed_has_coords'] = True
                 craft['computed_dist'] = self.hass.config.distance(lat, long)
                 craft['computed_bearing'] = bearing
 
