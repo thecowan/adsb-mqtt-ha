@@ -609,7 +609,7 @@ class DeviceAdsbInfo:
             hass = self.hass
             info = state.attributes.get(self._adsb_json_attribute)
             # TODO - check it's valid?
-            self._info = info
+            self._info_json = info
             await self.async_update()
         else:
             _LOGGER.info(f"ADSB info has an invalid value: {state}. Can't calculate new states. This is OK if during initial boot.")
@@ -618,7 +618,9 @@ class DeviceAdsbInfo:
         """Handle ADSB device mqtt_message."""
         payload = json.loads(message.payload)
         # TODO: definitely don't hardcode this!
-        self._info = payload.get('nearest_aircraft')
+        self._info_json = payload.get('nearest_aircraft')
+        if not self._info_json:
+            self._info_json = payload.get('aircraft')
         await self.async_update()
 
     # TODO - there is absolutely a better way to do this than this complicated callback mechanism
@@ -733,11 +735,7 @@ class DeviceAdsbInfo:
         if not self._info:
             return None
         closest = self._info[0]
-        lat = float(closest.get('lat'))
-        long =  float(closest.get('lon'))
-        if lat == 0.0 and long == 0.0:
-            return None
-        return self.hass.config.distance(lat, long)
+        return closest.get('computed_dist')
 
     @compute_once_lock(SensorType.CLOSEST_AIRCRAFT_BEARING)
     async def closest_aircraft_bearing(self) -> Optional[Tuple[float, dict]]:
@@ -746,11 +744,9 @@ class DeviceAdsbInfo:
         if not self._info:
             return None
         closest = self._info[0]
-        lat = float(closest.get('lat'))
-        long =  float(closest.get('lon'))
-        if lat == 0.0 and long == 0.0:
+        bearing = closest.get('computed_bearing')
+        if not bearing:
             return None
-        bearing = gcc.bearing_at_p1((self.hass.config.longitude, self.hass.config.latitude), (long, lat))
         attrs = {
             'compass': to_compass(bearing, BEARINGS),
             'compass_fine': to_compass(bearing, BEARINGS_FINE),
@@ -764,14 +760,9 @@ class DeviceAdsbInfo:
             return None
         closest = self._info[0]
         track = closest.get('track')
-        if not track:
+        bearing = closest.get('computed_bearing')
+        if not track or not bearing:
             return None
-
-        lat = float(closest.get('lat'))
-        long =  float(closest.get('lon'))
-        if lat == 0.0 and long == 0.0:
-            return None
-        bearing = gcc.bearing_at_p1((self.hass.config.longitude, self.hass.config.latitude), (long, lat))
 
         relative = int(bearing - track) % 360
         if relative > 90 and relative < 270:
@@ -784,19 +775,17 @@ class DeviceAdsbInfo:
             return None
         closest = self._info[0]
 
-        lat = float(closest.get('lat'))
-        long =  float(closest.get('lon'))
+        lat = float(closest.get('lat') or 0.0)
+        long = float(closest.get('lon') or 0.0)
+        bearing = closest.get('computed_bearing')
+        distance = closest.get('computed_bearing')
+        track = closest.get('track')
+        speed = closest.get('gs')
         if lat == 0.0 and long == 0.0:
             return None
-        distance = self.hass.config.distance(lat, long)
+        if not track or not speed or not bearing or not distance:
+            return None
         distance_nm = distance / 1.852
-        bearing = gcc.bearing_at_p1((self.hass.config.longitude, self.hass.config.latitude), (long, lat))
-        track = closest.get('track')
-        if not track:
-            return None
-        speed = closest.get('gs')
-        if not speed:
-            return None
         relative = int(bearing - track) % 360
         if relative < 90 or relative > 270:
             # It's receding
@@ -830,10 +819,28 @@ class DeviceAdsbInfo:
 
         return (round(cpa_km, 3), attrs)
 
+    def preprocess_json(self, raw_json):
+        processed = raw_json
+        for craft in processed:
+            # TODO - option to allow geo preprocessing?
+            lat = craft.get('lat')
+            long = craft.get('lon')
+            if (lat and long):
+                lat = float(lat)
+                long = float(long)
+                bearing = gcc.bearing_at_p1((self.hass.config.longitude, self.hass.config.latitude), (long, lat))
+                craft['computed_dist'] = self.hass.config.distance(lat, long)
+                craft['computed_bearing'] = bearing
+
+        # TODO only if we're using geo
+        processed.sort(key=lambda x: x.get('computed_dist') or 999999.9999)
+
+        return processed
 
     async def async_update(self):
         """Update the state."""
-        if self._info is not None:
+        if self._info_json is not None:
+            self._info = self.preprocess_json(self._info_json)
             for sensor_type in SENSOR_TYPES.keys():
                 self._compute_states[sensor_type].needs_update = True
             if not self._should_poll:
