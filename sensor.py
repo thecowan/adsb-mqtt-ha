@@ -332,9 +332,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
         sensors += [
             SensorAdsbInfo(
                 device=compute_device,
-                entity_description=SensorEntityDescription(
-                    **SENSOR_TYPES[SensorType.from_string(sensor_type)]
-                ),
+                entity_description_data=SENSOR_TYPES[SensorType.from_string(sensor_type)],
                 icon_template=device_config.get(CONF_ICON_TEMPLATE),
                 sensor_type=SensorType.from_string(sensor_type),
                 fas_icons=device_config.get(CONF_USE_FAS_ICONS, False),
@@ -383,7 +381,7 @@ async def async_setup_entry(
     entities: list[SensorAdsbInfo] = [
         SensorAdsbInfo(
             device=compute_device,
-            entity_description=SensorEntityDescription(**SENSOR_TYPES[sensor_type]),
+            entity_description_data=SENSOR_TYPES[sensor_type],
             sensor_type=sensor_type,
             fas_icons=data[CONF_USE_FAS_ICONS],
         )
@@ -415,7 +413,7 @@ class SensorAdsbInfo(SensorEntity):
         self,
         device: "DeviceAdsbInfo",
         sensor_type: SensorType,
-        entity_description: SensorEntityDescription,
+        entity_description_data: dict,
         icon_template: Template = None,
         fas_icons: bool = False,
         is_config_entry: bool = True,
@@ -423,15 +421,16 @@ class SensorAdsbInfo(SensorEntity):
         """Initialize the sensor."""
         self._device = device
         self._sensor_type = sensor_type
-        self.entity_description = entity_description
-        self.entity_description.has_entity_name = is_config_entry
+        desc_data = entity_description_data.copy()
+        desc_data["has_entity_name"] = is_config_entry
         if not is_config_entry:
-            self.entity_description.name = (
-                f"{self._device.name} {self.entity_description.name}"
+            desc_data["name"] = (
+                f"{self._device.name} {desc_data['name']}"
             )
         if fas_icons:
-            if self.entity_description.key in FAS_ENTITY_ICONS:
-                self.entity_description.icon = FAS_ENTITY_ICONS[self.entity_description.key]
+            if desc_data["key"] in FAS_ENTITY_ICONS:
+                desc_data["icon"] = FAS_ENTITY_ICONS[desc_data["key"]]
+        self.entity_description = SensorEntityDescription(desc_data)
         self._icon_template = icon_template
         self._attr_native_value = None
         self._attr_extra_state_attributes = {}
